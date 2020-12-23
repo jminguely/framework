@@ -1,11 +1,11 @@
 {
-  "name": "themosis/framework",
+  "name": "jminguely/themosis-framework",
   "description": "The Themosis framework.",
   "keywords": ["themosis", "framework", "wordpress"],
   "license": "GPL-2.0-or-later",
   "support": {
-    "issues": "https://github.com/themosis/framework/issues",
-    "source": "https://github.com/themosis/framework"
+    "issues": "https://github.com/jminguely/framework/issues",
+    "source": "https://github.com/jminguely/framework"
   },
   "authors": [
     {
