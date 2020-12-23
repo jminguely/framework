@@ -5,7 +5,7 @@
     border-top: 1px solid $light-gray-500;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
     padding: $paddingV $paddingH;
   }
 
@@ -14,7 +14,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    margin-right: $paddingH;
+    margin-left: $paddingH;
 
     &__icon {
       display: flex;
@@ -183,7 +183,7 @@
 }
 
 /* Gutenberg styles */
-.gutenberg-editor-page {
+.wp-editor {
   .themosis__metabox {
     &__footer {
       background: $light-gray-200;
@@ -201,6 +201,14 @@
 
   .themosis__field {
     padding: $paddingV;
+  }
+}
+
+.themosis {
+  .edit-post-layout__metaboxes:not(:empty) {
+    .edit-post-meta-boxes-area {
+      margin: auto 0;
+    }
   }
 }
 

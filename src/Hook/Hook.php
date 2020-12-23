@@ -4,6 +4,7 @@ namespace Themosis\Hook;
 
 use BadMethodCallException;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Str;
 
 abstract class Hook implements IHook
 {
@@ -64,31 +65,15 @@ abstract class Hook implements IHook
     }
 
     /**
-     * Return the callback registered with the hook.
-     *
-     * @param string $hook The hook name.
-     *
-     * @return array|null
-     */
-    public function getCallback($hook)
-    {
-        if (array_key_exists($hook, $this->hooks)) {
-            return $this->hooks[$hook];
-        }
-
-        return null;
-    }
-
-    /**
      * Remove a registered action or filter.
      *
      * @param string          $hook
-     * @param int             $priority
      * @param \Closure|string $callback
+     * @param int             $priority
      *
      * @return mixed The Hook instance or false.
      */
-    public function remove($hook, $priority = 10, $callback = null)
+    public function remove($hook, $callback = null, $priority = 10)
     {
         // If $callback is null, it means we have chained the methods to
         // the action/filter instance. If the instance has no callback, return false.
@@ -106,6 +91,22 @@ abstract class Hook implements IHook
         $this->removeAction($hook, $callback, $priority);
 
         return $this;
+    }
+
+    /**
+     * Return the callback registered with the hook.
+     *
+     * @param string $hook The hook name.
+     *
+     * @return array|null
+     */
+    public function getCallback($hook)
+    {
+        if (array_key_exists($hook, $this->hooks)) {
+            return $this->hooks[$hook];
+        }
+
+        return null;
     }
 
     /**
@@ -138,12 +139,12 @@ abstract class Hook implements IHook
         if ($callback instanceof \Closure || is_array($callback)) {
             $this->addEventListener($hook, $callback, $priority, $accepted_args);
         } elseif (is_string($callback)) {
-            if (is_callable($callback)) {
-                // Used as a classic callback function.
-                $this->addEventListener($hook, $callback, $priority, $accepted_args);
-            } else {
+            if (false !== strpos($callback, '@') || class_exists($callback)) {
                 // Return the class responsible to handle the action.
                 $callback = $this->addClassEvent($hook, $callback, $priority, $accepted_args);
+            } else {
+                // Used as a classic callback function.
+                $this->addEventListener($hook, $callback, $priority, $accepted_args);
             }
         }
 
@@ -177,6 +178,8 @@ abstract class Hook implements IHook
      * @param string $class
      * @param string $hook
      *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     *
      * @return array
      */
     protected function buildClassEventCallback($class, $hook)
@@ -198,12 +201,12 @@ abstract class Hook implements IHook
      */
     protected function parseClassEvent($class, $hook)
     {
-        if (str_contains($class, '@')) {
+        if (Str::contains($class, '@')) {
             return explode('@', $class);
         }
 
         // If no method is defined, use the hook name as the method name.
-        $method = str_contains($hook, '-') ? str_replace('-', '_', $hook) : $hook;
+        $method = Str::contains($hook, '-') ? str_replace('-', '_', $hook) : $hook;
 
         return [$class, $method];
     }

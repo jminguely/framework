@@ -54,6 +54,7 @@ declare interface MediaOptions {
 declare interface FieldType {
     attributes: {
         checked: string;
+        class?: string;
         id: string;
         max: string;
         min: string;
@@ -95,7 +96,7 @@ declare interface FieldType {
     type: string;
     validation: {
         errors: boolean;
-        messages: object;
+        messages: Array<string>;
         placeholder: string;
         rules: string | Array<string>;
     };
@@ -161,7 +162,7 @@ declare interface WordPressEditorInit {
 
 declare namespace wp {
     const media: WordPressMedia;
-    const editor: {
+    const oldEditor: {
         initialize: WordPressEditorInit;
     }
 }

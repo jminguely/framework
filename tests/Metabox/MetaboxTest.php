@@ -10,8 +10,8 @@ use Themosis\Core\Application;
 use Themosis\Forms\Fields\FieldsRepository;
 use Themosis\Hook\ActionBuilder;
 use Themosis\Hook\FilterBuilder;
+use Themosis\Metabox\Contracts\MetaboxInterface;
 use Themosis\Metabox\Factory;
-use Themosis\Metabox\MetaboxInterface;
 use Themosis\Metabox\Resources\MetaboxResource;
 use Themosis\Metabox\Resources\Transformers\MetaboxTransformer;
 use Themosis\Support\Section;
@@ -77,7 +77,6 @@ class MetaboxTest extends TestCase
         $this->assertEquals('default', $box->getPriority());
         $this->assertEquals([$box, 'handle'], $box->getCallback());
         $this->assertTrue(is_array($box->getArguments()));
-        $this->assertTrue(empty($box->getArguments()));
         $this->assertEquals('default', $box->getLayout());
         $this->assertEquals('en_US', $box->getLocale());
         $this->assertEquals('th_', $box->getPrefix());

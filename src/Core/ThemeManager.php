@@ -57,7 +57,8 @@ class ThemeManager
         'version' => 'Version',
         'license' => 'License',
         'license_uri' => 'License URI',
-        'text_domain' => 'Text Domain'
+        'text_domain' => 'Text Domain',
+        'domain_path' => 'Domain Path',
     ];
 
     /**
@@ -68,7 +69,7 @@ class ThemeManager
     /**
      * @var ImageSize
      */
-    protected $images;
+    public $images;
 
     /**
      * The theme directory name.
@@ -98,13 +99,6 @@ class ThemeManager
         $this->setThemeConstants();
         $this->loadThemeConfiguration($path);
         $this->setThemeAutoloading();
-        $this->registerThemeServicesProviders();
-        $this->setThemeViews();
-        $this->setThemeImages();
-        $this->setThemeMenus();
-        $this->setThemeSidebars();
-        $this->setThemeSupport();
-        $this->setThemeTemplates();
 
         return $this;
     }
@@ -159,7 +153,7 @@ class ThemeManager
      */
     public function getPath(string $path = '')
     {
-        return get_template_directory().($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return $this->dirPath.($path ? DIRECTORY_SEPARATOR.$path : $path);
     }
 
     /**
@@ -177,10 +171,10 @@ class ThemeManager
                 get_home_url(),
                 CONTENT_DIR,
                 $this->getDirectory()
-            ).($path ? DIRECTORY_SEPARATOR.$path : $path);
+            ).($path ? '/'.$path : $path);
         }
 
-        return get_template_directory_uri().($path ? DIRECTORY_SEPARATOR.$path : $path);
+        return get_template_directory_uri().($path ? '/'.$path : $path);
     }
 
     /**
@@ -188,7 +182,7 @@ class ThemeManager
      */
     protected function setThemeDirectory()
     {
-        $pos = strrpos($this->dirPath, '/');
+        $pos = strrpos($this->dirPath, DIRECTORY_SEPARATOR);
 
         $this->directory = substr($this->dirPath, $pos + 1);
     }
@@ -218,39 +212,59 @@ class ThemeManager
 
     /**
      * Register theme services providers.
+     *
+     * @param array $providers
+     *
+     * @return $this
      */
-    protected function registerThemeServicesProviders()
+    public function providers(array $providers = [])
     {
-        $providers = $this->config->get('theme.providers', []);
-
         foreach ($providers as $provider) {
             $this->app->register(new $provider($this->app));
         }
+
+        return $this;
     }
 
     /**
      * Register theme views path.
+     *
+     * @param array $paths
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     *
+     * @return $this
      */
-    protected function setThemeViews()
+    public function views(array $paths = [])
     {
         if (! $this->app->has('view')) {
-            return;
+            return $this;
         }
 
-        $paths = $this->config->get('theme.views', []);
-
         if (empty($paths)) {
-            return;
+            return $this;
         }
 
         $factory = $this->app->make('view');
         $twigLoader = $this->app->make('twig.loader');
 
-        foreach ($paths as $path) {
-            $uri = $this->dirPath.'/'.trim($path, '\/');
-            $factory->addLocation($uri);
+        foreach ($paths as $path => $priority) {
+            if (is_numeric($path)) {
+                $location = $priority;
+
+                // Set a default base priority for themes
+                // that do not define one.
+                $priority = 100;
+            } else {
+                $location = $path;
+            }
+
+            $uri = $this->dirPath.'/'.trim($location, '\/');
+            $factory->getFinder()->addOrderedLocation($uri, $priority);
             $twigLoader->addPath($uri);
         }
+
+        return $this;
     }
 
     /**
@@ -261,17 +275,43 @@ class ThemeManager
         $this->parsedHeaders = $this->headers($this->dirPath.'/style.css', $this->headers);
 
         // Theme text domain.
-        $textdomain = $this->parsedHeaders['text_domain'] ?? 'themosis_theme';
+        $textdomain = (isset($this->parsedHeaders['text_domain']) && ! empty($this->parsedHeaders['text_domain']))
+            ? $this->parsedHeaders['text_domain']
+            : 'themosis_theme';
+
         defined('THEME_TD') ? THEME_TD : define('THEME_TD', $textdomain);
     }
 
     /**
      * Register theme image sizes.
+     *
+     * @param array $sizes
+     *
+     * @return $this
      */
-    protected function setThemeImages()
+    public function images(array $sizes = [])
     {
-        $this->images = (new ImageSize($this->config->get('images'), $this->app['filter']))
+        if (empty($sizes)) {
+            return $this;
+        }
+
+        $this->images = (new ImageSize($sizes, $this->app['filter']))
             ->register();
+
+        return $this;
+    }
+
+    /**
+     * Return a configuration value.
+     *
+     * @param string $key
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public function config(string $key, $default = null)
+    {
+        return $this->config->get($key, $default);
     }
 
     /**
@@ -279,53 +319,79 @@ class ThemeManager
      *
      * @return ImageSize
      */
-    public function images()
+    public function getImages()
     {
         return $this->images;
     }
 
     /**
      * Register theme menus locations.
+     *
+     * @param array $menus
+     *
+     * @return $this
      */
-    protected function setThemeMenus()
+    public function menus(array $menus = [])
     {
-        if (function_exists('register_nav_menus') && $this->config->has('menus')) {
-            register_nav_menus($this->config->get('menus'));
+        if (empty($menus)) {
+            return $this;
         }
+
+        if (function_exists('register_nav_menus')) {
+            register_nav_menus($menus);
+        }
+
+        return $this;
     }
 
     /**
      * Register theme sidebars.
+     *
+     * @param array $sidebars
+     *
+     * @return $this
      */
-    protected function setThemeSidebars()
+    public function sidebars($sidebars = [])
     {
-        if (! function_exists('register_sidebar')) {
-            return;
+        if (empty($sidebars)) {
+            return $this;
         }
 
-        $sidebars = $this->config->get('sidebars', []);
-
-        if (! empty($sidebars)) {
+        if (function_exists('register_sidebar')) {
             foreach ($sidebars as $sidebar) {
                 register_sidebar($sidebar);
             }
         }
+
+        return $this;
     }
 
     /**
      * Register theme support features.
+     *
+     * @param array $features
+     *
+     * @return $this
      */
-    protected function setThemeSupport()
+    public function support($features = [])
     {
-        (new Support($this->config->get('support', [])))->register();
+        (new Support($features))->register();
+
+        return $this;
     }
 
     /**
      * Register theme templates.
+     *
+     * @param array $templates
+     *
+     * @return $this
      */
-    protected function setThemeTemplates()
+    public function templates($templates = [])
     {
-        (new Templates($this->config->get('templates', []), $this->app['filter']))
+        (new Templates($templates, $this->app['filter']))
             ->register();
+
+        return $this;
     }
 }

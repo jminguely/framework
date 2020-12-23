@@ -130,6 +130,14 @@
   }
 }
 
+.themosis.wp-editor {
+  .themosis__select.open {
+    .themosis__select__output {
+      min-height: 26px;
+    }
+  }
+}
+
 .themosis__select.multiple {
   .themosis__select__field {
     min-height: 34px;

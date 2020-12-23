@@ -3,6 +3,7 @@
 namespace Themosis\Support;
 
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Support\Str;
 
 trait CallbackHandler
 {
@@ -41,14 +42,14 @@ trait CallbackHandler
         if ($callback instanceof \Closure || is_array($callback)) {
             $response = call_user_func($callback, $args);
         } elseif (is_string($callback)) {
-            if (is_callable($callback)) {
-                // Used as a classic callback function.
-                $response = call_user_func($callback, $args);
-            } else {
+            if (false !== strpos($callback, '@') || class_exists($callback)) {
                 // We use a "ClassName@method" syntax.
                 // Let's get a class instance and call its method.
                 $callbackArray = $this->handleClassCallback($callback);
                 $response = call_user_func($callbackArray, $args);
+            } else {
+                // Used as a classic callback function.
+                $response = call_user_func($callback, $args);
             }
         }
 
@@ -59,6 +60,8 @@ trait CallbackHandler
      * Handle a class callback using "ClassName@method" syntax
      *
      * @param string $callback
+     *
+     * @throws \Illuminate\Contracts\Container\BindingResolutionException
      *
      * @return array
      */
@@ -79,7 +82,7 @@ trait CallbackHandler
      */
     protected function parseCallback(string $callback): array
     {
-        if (str_contains($callback, '@')) {
+        if (Str::contains($callback, '@')) {
             return explode('@', $callback);
         }
 
